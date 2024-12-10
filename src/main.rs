@@ -47,7 +47,7 @@ async fn keyv6(f: Query<FromIPv6>, k: Query<ToIPv6>) -> HttpResponse {
     let result_vec: Vec<u8> = from_ip
         .iter()
         .zip(key_ip.iter())
-        .map(|(x, y)| x ^ y ^ 0xff)
+        .map(|(x, y)| x ^ y)
         .collect();
 
     let result: [u8; 16] = result_vec.try_into().expect("slice with incorrect length");
@@ -119,7 +119,9 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
         cfg.service(hello_world)
             .service(seek)
             .service(dest)
-            .service(key);
+            .service(key)
+            .service(destv6)
+            .service(keyv6);
     };
 
     Ok(config.into())
