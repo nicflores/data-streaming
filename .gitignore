@@ -1,3 +1,5 @@
 /target
 .shuttle*
 Secrets*.toml
+no_content.toml
+test.toml

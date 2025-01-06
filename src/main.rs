@@ -1,9 +1,15 @@
 use actix_web::{
     get,
     http::header,
-    web::{Query, ServiceConfig},
+    post,
+    web::{Bytes, Query, ServiceConfig},
     HttpResponse,
 };
+use azure_app_config::azure_app_config::Client;
+use azure_identity::{
+    AppServiceManagedIdentityCredential, DefaultAzureCredentialBuilder, TokenCredentialOptions,
+};
+use serde::{Deserialize, Serialize};
 use shuttle_actix_web::ShuttleActixWeb;
 use std::net::Ipv4Addr;
 use std::net::Ipv6Addr;
@@ -37,6 +43,42 @@ struct ToIPv6 {
 #[derive(serde::Deserialize)]
 struct KeyIPv6 {
     key: Ipv6Addr,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct Gifts {
+    package: Package,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct Package {
+    name: String,
+    authors: Vec<String>,
+    keywords: Vec<String>,
+    metadata: Option<Metadata>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct Metadata {
+    orders: Vec<Order>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct Order {
+    item: String,
+    quantity: u32,
+}
+
+// Day 5
+#[post("/5/manifest")]
+async fn day5(payload: Bytes) -> HttpResponse {
+    match std::str::from_utf8(&payload) {
+        Ok(toml_str) => match toml::from_str::<Gifts>(toml_str) {
+            Ok(cfg) => HttpResponse::Ok().json(cfg),
+            Err(e) => HttpResponse::NotFound().body(()),
+        },
+        Err(e) => HttpResponse::BadRequest().body(format!("Invalid UTF-8: {}", e)),
+    }
 }
 
 // Day 2
@@ -121,7 +163,8 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
             .service(dest)
             .service(key)
             .service(destv6)
-            .service(keyv6);
+            .service(keyv6)
+            .service(day5);
     };
 
     Ok(config.into())
